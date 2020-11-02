@@ -1,5 +1,5 @@
-drop database dblab;
-create database dblab;
+drop database if exists dblab;
+create database if not exists dblab;
 use dblab;
 create table if not exists room (
   	kdno smallint not null comment '考点号',
@@ -15,13 +15,12 @@ charset = utf8,
 comment = '考场信息';
 create table if not exists student (
 	registno integer not NULL comment '考号',
-	name varchar(50) not NULL comment '姓名',
+	name varchar(50) comment '姓名',
 	kdno smallint not null comment '考点号',
   	kcno tinyint not null comment '考场号',
   	ccno tinyint not null comment '场次号',
-    seat tinyint not null comment '指定座位',
-	primary key (registno),
-    foreign key(kdno,kcno,ccno) references room(kdno,kcno,ccno)
+    seat tinyint comment '指定座位',
+	primary key (registno)
 )
 engine = innodb,
 charset = utf8,

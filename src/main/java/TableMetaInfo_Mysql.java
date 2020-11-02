@@ -3,17 +3,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TableMetaInfo {
+public class TableMetaInfo_Mysql {
     private List<String> Attributes;
     private Map<String, Integer> AttributeIndexs;
     private List<String> Types;
     private List<Boolean> IsNullables;
 
-    public TableMetaInfo(String DB_URL, String tableName) {
-        Attributes = DB_Tools.getColumnNames(DB_URL, tableName);
-        Types = DB_Tools.getColumnTypes(DB_URL, tableName);
+    public TableMetaInfo_Mysql(String tableName) {
+        Attributes = DB_Tools_Mysql.getColumnNames(tableName);
+        Types = DB_Tools_Mysql.getColumnTypes(tableName);
 
-        List<Integer> isNullable = DB_Tools.isNullable(DB_URL, tableName);
+        List<Integer> isNullable = DB_Tools_Mysql.isNullable(tableName);
         IsNullables = new ArrayList<Boolean>();
         for (int i : isNullable) {
             if (i == 0) {

@@ -7,27 +7,14 @@ import java.util.List;
 
 public class DB_Tools {
 
-    static final String DB_URL = "jdbc:mysql://localhost:3306/";
-    static final String DB_DBLAB_URL = "jdbc:mysql://localhost:3306/dblab";
+    static final String DB_URL = "jdbc:mysql://localhost:3306/";//建数据库用
 
-    static final String DB_DRIVER = "com.mysql.jdbc.Driver";
     static final String DB_USER = "root";
     static final String DB_PASSWORD = "password";
 
-    static final boolean isLog = true;
+    static final boolean isLog = false;
 
     private static final String SQL = "SELECT * FROM ";// 数据库操作
-
-    static {
-        try {
-            Class.forName(DB_DRIVER);
-            if (isLog) {
-                System.out.println("驱动注册成功.");
-            }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * 获取数据库连接
@@ -62,14 +49,14 @@ public class DB_Tools {
     }
 
     /**
-     * 关闭预准备语句
+     * 关闭预编译语句
      */
     public static void closePreparedStatement(PreparedStatement preparedStatement) {
         if (preparedStatement != null) {
             try {
                 preparedStatement.close();
                 if (isLog) {
-                    System.out.println("预准备语句已关闭.");
+                    System.out.println("预编译语句已关闭.");
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -151,6 +138,10 @@ public class DB_Tools {
         String tableSql = SQL + tableName;
         try {
             pStemt = conn.prepareStatement(tableSql);
+            if (isLog) {
+                System.out.println("正要执行:");
+                System.out.println(tableSql);
+            }
             //结果集元数据
             ResultSetMetaData rsmd = pStemt.getMetaData();
             //表列数
@@ -178,6 +169,10 @@ public class DB_Tools {
         String tableSql = SQL + tableName;
         try {
             pStemt = conn.prepareStatement(tableSql);
+            if (isLog) {
+                System.out.println("正要执行:");
+                System.out.println(tableSql);
+            }
             //结果集元数据
             ResultSetMetaData rsmd = pStemt.getMetaData();
             //表列数
@@ -205,6 +200,10 @@ public class DB_Tools {
         String tableSql = SQL + tableName;
         try {
             pStemt = conn.prepareStatement(tableSql);
+            if (isLog) {
+                System.out.println("正要执行:");
+                System.out.println(tableSql);
+            }
             //结果集元数据
             ResultSetMetaData rsmd = pStemt.getMetaData();
             //表列数
@@ -219,50 +218,5 @@ public class DB_Tools {
             closeConnection(conn);
         }
         return columnTypes;
-    }
-
-    /**
-     * 获取表中字段的所有注释
-     */
-    public static List<String> getColumnComments(String DB_URL, String tableName) {
-        List<String> columnTypes = new ArrayList<String>();
-        //与数据库的连接
-        Connection conn = getConnection(DB_URL);
-        PreparedStatement pStemt = null;
-        String tableSql = SQL + tableName;
-        List<String> columnComments = new ArrayList<String>();//列名注释集合
-        ResultSet rs = null;
-        try {
-            pStemt = conn.prepareStatement(tableSql);
-            rs = pStemt.executeQuery("show full columns from " + tableName);
-            while (rs.next()) {
-                columnComments.add(rs.getString("Comment"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeResultSet(rs);
-            closePreparedStatement(pStemt);
-            closeConnection(conn);
-        }
-        return columnComments;
-    }
-
-    public static void main(String[] args) {
-        String DB_URL = DB_DBLAB_URL;
-        List<String> tableNames = getTableNames(DB_URL);
-        System.out.println("tableNames:" + tableNames);
-        for (String tableName : tableNames) {
-            TableMetaInfo tf = new TableMetaInfo(DB_URL, tableName);
-            List<String> attributes =  tf.getAttributes();
-            System.out.println("attributes=" + attributes);
-            for (String attribute : attributes) {
-                System.out.println(attribute + "->" + tf.getType(attribute) + ", " + tf.getIsNullable(attribute));
-            }
-//            System.out.println("ColumnNames:" + getColumnNames(DB_URL, tableName));
-//            System.out.println("ColumnTypes:" + getColumnTypes(DB_URL, tableName));
-//            System.out.println("Nullable:" + isNullable(DB_URL, tableName));
-//            System.out.println("ColumnComments:" + getColumnComments(DB_URL, tableName));
-        }
     }
 }
