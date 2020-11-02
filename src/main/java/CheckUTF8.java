@@ -9,10 +9,8 @@ public class CheckUTF8 {
         try {
             System.out.println(isUtf("D://student.csv"));
         } catch (FileNotFoundException e) {
-// TODO Auto-generated catch block
             e.printStackTrace();
         } catch (IOException e) {
-// TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
