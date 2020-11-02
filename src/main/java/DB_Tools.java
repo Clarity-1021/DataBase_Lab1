@@ -142,7 +142,6 @@ public class DB_Tools {
 
     /**
      * 获取表中所有字段名称
-     * @param tableName 表名
      */
     public static List<String> getColumnNames(String DB_URL, String tableName) {
         List<String> columnNames = new ArrayList<String>();
@@ -196,6 +195,33 @@ public class DB_Tools {
     }
 
     /**
+     * 获取表中所有字段的完整性约束
+     */
+    public static List<Integer> isNullable(String DB_URL, String tableName) {
+        List<Integer> columnTypes = new ArrayList<Integer>();
+        //与数据库的连接
+        Connection conn = getConnection(DB_URL);
+        PreparedStatement pStemt = null;
+        String tableSql = SQL + tableName;
+        try {
+            pStemt = conn.prepareStatement(tableSql);
+            //结果集元数据
+            ResultSetMetaData rsmd = pStemt.getMetaData();
+            //表列数
+            int size = rsmd.getColumnCount();
+            for (int i = 0; i < size; i++) {
+                columnTypes.add(rsmd.isNullable(i + 1));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closePreparedStatement(pStemt);
+            closeConnection(conn);
+        }
+        return columnTypes;
+    }
+
+    /**
      * 获取表中字段的所有注释
      */
     public static List<String> getColumnComments(String DB_URL, String tableName) {
@@ -222,14 +248,21 @@ public class DB_Tools {
         return columnComments;
     }
 
-//    public static void main(String[] args) {
-//        String DB_URL = DB_DBLAB_URL;
-//        List<String> tableNames = getTableNames(DB_URL);
-//        System.out.println("tableNames:" + tableNames);
-//        for (String tableName : tableNames) {
+    public static void main(String[] args) {
+        String DB_URL = DB_DBLAB_URL;
+        List<String> tableNames = getTableNames(DB_URL);
+        System.out.println("tableNames:" + tableNames);
+        for (String tableName : tableNames) {
+            TableMetaInfo tf = new TableMetaInfo(DB_URL, tableName);
+            List<String> attributes =  tf.getAttributes();
+            System.out.println("attributes=" + attributes);
+            for (String attribute : attributes) {
+                System.out.println(attribute + "->" + tf.getType(attribute) + ", " + tf.getIsNullable(attribute));
+            }
 //            System.out.println("ColumnNames:" + getColumnNames(DB_URL, tableName));
 //            System.out.println("ColumnTypes:" + getColumnTypes(DB_URL, tableName));
+//            System.out.println("Nullable:" + isNullable(DB_URL, tableName));
 //            System.out.println("ColumnComments:" + getColumnComments(DB_URL, tableName));
-//        }
-//    }
+        }
+    }
 }

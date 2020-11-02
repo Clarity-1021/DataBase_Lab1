@@ -4,6 +4,9 @@ import java.util.List;
 public class CreateTable {
     private static final String sqlPath = "src/main/sql/createTable.txt";
 
+    /**
+     * 用文本里的sql语句建表
+     */
     public static void main(String[] args){
         Connection dbConnection = DB_Tools.getConnection(DB_Tools.DB_URL);
         PreparedStatement preparedStatement = null;
