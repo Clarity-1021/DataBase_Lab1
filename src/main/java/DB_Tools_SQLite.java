@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DB_Tools_SQLite {
@@ -76,29 +77,37 @@ public class DB_Tools_SQLite {
 
             ResultSet rs = preparedStatement.executeQuery();
 
-            while(rs.next()){
-                StringBuilder sb = new StringBuilder();
+            List<List<String>> dataToInsert = new ArrayList<List<String>>();
 
+            while(rs.next()){
+//                StringBuilder sb = new StringBuilder();
+
+                List<String> args = new ArrayList<String>();
                 for (String attr : orderedAttrs) {
 //                    System.out.println(attr + "=" + rs.getString(attr));
                     String a = rs.getString(attr);
                     if (a.equals("")) {
-                        sb.append("null");
+                        args.add("null");
                     }
                     else {
-                        sb.append(a);
+                        args.add(a);
+//                        sb.append(a);
                     }
-                    sb.append(",");
+//                    sb.append(",");
 //                    System.out.println(sb.toString());
                 }
-                String line = sb.toString();
+                dataToInsert.add(args);
+//                String line = sb.toString();
 //                System.out.println("line=" + line);
 //                line += "\r\n";
 //                appendintxt(txtPath, line);
-                String[] args = line.split(",");
+//                String[] args = line.split(",");
 
-                DB_Tools_Mysql.insertValue(tablename, tf, args);
+
+
             }
+
+            DB_Tools_Mysql.insertValue(tablename, tf, dataToInsert);
 
             if (DB_Tools.isLog) {
                 System.out.println("执行成功.");

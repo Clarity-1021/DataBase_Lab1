@@ -62,7 +62,7 @@ public class DB_Tools_Mysql {
     }
 
     //args是排过序的，和表中属性的顺序一致
-    public static void insertValue(String tablename, TableMetaInfo_Mysql tf, String[] args) {
+    public static void insertValue(String tablename, TableMetaInfo_Mysql tf, List<List<String>> argsList) {
         List<String> attribute_T = tf.getAttributes();//获得表中顺序排列的属性名
         StringBuilder sb = new StringBuilder();
         sb.append("insert ignore into ").append(tablename).append("(");
@@ -93,218 +93,225 @@ public class DB_Tools_Mysql {
                 System.out.println(sql);
             }
 
-            for (int i = 0; i < args.length; i++) {
-                String type = tf.getType(i);
-                if ("TINYINT".equals(type) || "SMALLINT".equals(type) || "MEDIUMINT".equals(type) || "BOOLEAN".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+            for (List<String> args : argsList) {
+                for (int i = 0; i < args.size(); i++) {
+                    String arg = args.get(i);
+                    String type = tf.getType(i);
+                    if ("TINYINT".equals(type) || "SMALLINT".equals(type) || "MEDIUMINT".equals(type) || "BOOLEAN".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
+                            }
+                            else {
+                                if ("TINYINT".equals(type) || "BOOLEAN".equals(type)) {
+                                    preparedStatement.setNull(i + 1, Types.TINYINT);
+                                }
+                                else if ("SMALLINT".equals(type)) {
+                                    preparedStatement.setNull(i + 1, Types.SMALLINT);
+                                }
+                                else {
+                                    preparedStatement.setNull(i + 1, Types.INTEGER);
+                                }
+                            }
                         }
                         else {
-                            if ("TINYINT".equals(type) || "BOOLEAN".equals(type)) {
-                                preparedStatement.setNull(i + 1, Types.TINYINT);
-                            }
-                            else if ("SMALLINT".equals(type)) {
-                                preparedStatement.setNull(i + 1, Types.SMALLINT);
+                            preparedStatement.setInt(i + 1, Integer.parseInt(arg));
+                        }
+                    } else if ("INT".equals(type) || "INTEGER".equals(type) || "ID".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
                             }
                             else {
                                 preparedStatement.setNull(i + 1, Types.INTEGER);
                             }
                         }
-                    }
-                    else {
-                        preparedStatement.setInt(i + 1, Integer.parseInt(args[i]));
-                    }
-                } else if ("VARCHAR".equals(type) || "CHAR".equals(type) || "TEXT".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+                        else {
+                            preparedStatement.setLong(i + 1, Long.parseLong(arg));
+                        }
+                    } else if ("VARCHAR".equals(type) || "CHAR".equals(type) || "TEXT".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
 //                            preparedStatement.setString(i + 1, args[i]);
-                        }
-                        else {
-                            if ("VARCHAR".equals(type) || "TEXT".equals(type)) {
-                                preparedStatement.setNull(i + 1, Types.VARCHAR);
                             }
                             else {
-                                preparedStatement.setNull(i + 1, Types.CHAR);
+                                if ("VARCHAR".equals(type) || "TEXT".equals(type)) {
+                                    preparedStatement.setNull(i + 1, Types.VARCHAR);
+                                }
+                                else {
+                                    preparedStatement.setNull(i + 1, Types.CHAR);
+                                }
                             }
                         }
-                    }
-                    else {
-                        preparedStatement.setString(i + 1, args[i]);
-                    }
-                } else if ("DATETIME".equals(type) || "TIMESTAMP".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
+                        else {
+                            preparedStatement.setString(i + 1, arg);
+                        }
+                    } else if ("DATETIME".equals(type) || "TIMESTAMP".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
 //                            System.out.println("数据完整性约束为非空不能插入.");
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                            java.util.Date date = sdf.parse("0000-00-00 00:00");
-                            long lg = date.getTime(); //日期转时间戳
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                java.util.Date date = sdf.parse("0000-00-00 00:00:00");
+                                long lg = date.getTime(); //日期转时间戳
 //                            java.sql.Date t = new java.sql.Date(lg);
-                            preparedStatement.setDate(i + 1, new java.sql.Date(lg));
+                                preparedStatement.setTimestamp(i + 1, new java.sql.Timestamp(lg));
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.DATE);
+                            }
                         }
                         else {
-                            preparedStatement.setNull(i + 1, Types.DATE);
-                        }
-                    }
-                    else {
 //                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");//注意月份是MM
-//                        Date date = (Date) simpleDateFormat.parse(args[i]);
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                        java.util.Date date = sdf.parse(args[i]);
-                        long lg = date.getTime(); //日期转时间戳
-                        preparedStatement.setTimestamp(i + 1, new java.sql.Timestamp(lg));
-                    }
-                } else if ("BLOB".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+                            String pattern = CheckTimeDateFormate.matchDateTimeFormat(arg);
+                            if (pattern == null) {
+                                System.out.println("data time format wrong, this data will not insert in table.");
+                                System.out.println("datatime=" + arg);
+                                continue;
+                            }
+                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+                            java.util.Date date = simpleDateFormat.parse(arg);
+                            long lg = date.getTime(); //日期转时间戳
+                            preparedStatement.setTimestamp(i + 1, new java.sql.Timestamp(lg));
+                        }
+                    } else if ("BLOB".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.BLOB);
+                            }
                         }
                         else {
-                            preparedStatement.setNull(i + 1, Types.BLOB);
+                            preparedStatement.setBytes(i + 1, arg.getBytes());
                         }
-                    }
-                    else {
-                        preparedStatement.setBytes(i + 1, args[i].getBytes());
-                    }
-                } else if ("INTEGER".equals(type) || "ID".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
-                        }
-                        else {
-                            preparedStatement.setNull(i + 1, Types.INTEGER);
-                        }
-                    }
-                    else {
-                        preparedStatement.setLong(i + 1, Long.parseLong(args[i]));
-                    }
-                } else if ("BIT".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+                    } else if ("BIT".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.BIT);
+                            }
                         }
                         else {
-                            preparedStatement.setNull(i + 1, Types.BIT);
+                            if (!arg.equals("0")) {
+                                preparedStatement.setBoolean(i + 1, true);
+                            } else {
+                                preparedStatement.setBoolean(i + 1, false);
+                            }
                         }
-                    }
-                    else {
-                        if (!args[i].equals("0")) {
-                            preparedStatement.setBoolean(i + 1, true);
-                        } else {
-                            preparedStatement.setBoolean(i + 1, false);
-                        }
-                    }
-                } else if ("BIGINT".equals(type) || "DECIMAL".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+                    } else if ("BIGINT".equals(type) || "DECIMAL".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
 //                            preparedStatement.setBigDecimal(i + 1, BigDecimal.valueOf(0));
-                        }
-                        else {
-                            if ("BIGINT".equals(type)) {
-                                preparedStatement.setNull(i + 1, Types.BIGINT);
                             }
                             else {
-                                preparedStatement.setNull(i + 1, Types.DECIMAL);
+                                if ("BIGINT".equals(type)) {
+                                    preparedStatement.setNull(i + 1, Types.BIGINT);
+                                }
+                                else {
+                                    preparedStatement.setNull(i + 1, Types.DECIMAL);
+                                }
                             }
                         }
-                    }
-                    else {
-                        preparedStatement.setBigDecimal(i + 1, new BigDecimal(args[i]));
-                    }
-                } else if ("FLOAT".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
+                        else {
+                            preparedStatement.setBigDecimal(i + 1, new BigDecimal(arg));
+                        }
+                    } else if ("FLOAT".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
 //                            preparedStatement.setFloat(i + 1, 0);
-                        }
-                        else {
-                            preparedStatement.setNull(i + 1, Types.FLOAT);
-                        }
-                    }
-                    else {
-                        preparedStatement.setFloat(i + 1, Float.parseFloat(args[i]));
-                    }
-                } else if ("DOUBLE".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-                            System.out.println("数据完整性约束为非空不能插入.");
-//                            preparedStatement.setDouble(i + 1, 0);
-                        }
-                        else {
-                            preparedStatement.setNull(i + 1, Types.DOUBLE);
-                        }
-                    }
-                    else {
-                        preparedStatement.setDouble(i + 1, Double.parseDouble(args[i]));
-                    }
-                } else if ("DATE".equals(type) || "YEAR".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
-//                            System.out.println("数据完整性约束为非空不能插入.");
-                            java.util.Date date;
-                            if ("DATE".equals(type)) {
-                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
-                                date = simpleDateFormat.parse("0000-00-00");
                             }
                             else {
-                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy");
-                                date = simpleDateFormat.parse("0000");
+                                preparedStatement.setNull(i + 1, Types.FLOAT);
                             }
+                        }
+                        else {
+                            preparedStatement.setFloat(i + 1, Float.parseFloat(arg));
+                        }
+                    } else if ("DOUBLE".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+                                System.out.println("数据完整性约束为非空不能插入.");
+//                            preparedStatement.setDouble(i + 1, 0);
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.DOUBLE);
+                            }
+                        }
+                        else {
+                            preparedStatement.setDouble(i + 1, Double.parseDouble(arg));
+                        }
+                    } else if ("DATE".equals(type) || "YEAR".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
+//                            System.out.println("数据完整性约束为非空不能插入.");
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                java.util.Date date = simpleDateFormat.parse("0000-00-00");
+                                long lg = date.getTime(); //日期转时间戳
+                                preparedStatement.setDate(i + 1, new java.sql.Date(lg));
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.DATE);
+                            }
+                        }
+                        else {
+                            String pattern = CheckTimeDateFormate.matchDateFormat(arg);
+                            if (pattern == null) {
+                                System.out.println("date format wrong, this data will not insert in table.");
+                                continue;
+                            }
+                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+                            java.util.Date date = simpleDateFormat.parse(arg);
                             long lg = date.getTime(); //日期转时间戳
                             preparedStatement.setDate(i + 1, new java.sql.Date(lg));
-                        }
-                        else {
-                            preparedStatement.setNull(i + 1, Types.DATE);
-                        }
-                    }
-                    else {
-                        SimpleDateFormat simpleDateFormat;
-                        if ("DATE".equals(type)) {
-                            simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
-                        }
-                        else {
-                            simpleDateFormat = new SimpleDateFormat("yyyy");
-                        }
-                        java.util.Date date = simpleDateFormat.parse(args[i]);
-                        long lg = date.getTime(); //日期转时间戳
-                        preparedStatement.setDate(i + 1, new java.sql.Date(lg));
 
 //                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 //                        java.util.Date date = sdf.parse("00:00:00");
 //                        long lg = date.getTime(); //日期转时间戳
 //                        preparedStatement.setTime(i + 1, new java.sql.Time(lg));
-                    }
-                } else if ("TIME".equals(type)) {
-                    if (args[i].equals("null")) {
-                        if (!tf.getIsNullable(i)) {
+                        }
+                    } else if ("TIME".equals(type)) {
+                        if (arg.equals("null")) {
+                            if (!tf.getIsNullable(i)) {
 //                            System.out.println("数据完整性约束为非空不能插入.");
-                            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                            java.util.Date date = sdf.parse("00:00:00");
-                            long lg = date.getTime(); //日期转时间戳
-                            preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+                                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss:");
+                                java.util.Date date = sdf.parse("00:00:00");
+                                long lg = date.getTime(); //日期转时间戳
+                                preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.TIME);
+                            }
                         }
                         else {
-                            preparedStatement.setNull(i + 1, Types.TIME);
-                        }
-                    }
-                    else {
-                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                        java.util.Date date = sdf.parse(args[i]);
-                        long lg = date.getTime(); //日期转时间戳
-                        preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+                            String pattern = CheckTimeDateFormate.matchTimeFormat(arg);
+                            if (pattern == null) {
+                                System.out.println("time format wrong, this data will not insert in table.");
+                                continue;
+                            }
+                            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                            java.util.Date date = sdf.parse(arg);
+                            long lg = date.getTime(); //日期转时间戳
+                            preparedStatement.setTime(i + 1, new java.sql.Time(lg));
 //                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
 //                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");//注意月份是MM
 //                        java.util.Date d = sdf.parse(args[i]);
 //                        preparedStatement.setTime(i + 1, new Time(d.getTime()));
+                        }
+                    } else {
+                        System.out.println("no such data type, this record not insert.");
                     }
-                } else {
-                    System.out.println("no such data type, this record not insert.");
                 }
+                preparedStatement.addBatch();
             }
 
-            preparedStatement.executeUpdate();
+
+            preparedStatement.executeBatch();
 
             if (DB_Tools.isLog) {
                 System.out.println("执行成功.");

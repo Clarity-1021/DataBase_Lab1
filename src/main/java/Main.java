@@ -4,11 +4,11 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-//        String isCreate = readFromConsole("Delate database name dblab and Create database dblab?[yes to create]");
-//        if (!isCreate.equals("yes")) {
-//            System.out.println("bye~");
-//            return;
-//        }
+        String isCreate = readFromConsole("Delate database name dblab and Create database dblab?[yes to create]");
+        if (!isCreate.equals("yes")) {
+            System.out.println("bye~");
+            return;
+        }
 
         //建表
         DB_Tools_Mysql.createTables();
@@ -21,28 +21,31 @@ public class Main {
         }
 
         //插csv
-//        for (String tablename : TableNames) {
-//            String hascsv = readFromConsole("INSERT csv DATA for table " + tablename + "?[yes to enter csv]");
-//            if (hascsv.equals("yes")) {
-//                String csvPath = readFromConsole("Enter csv Path[eg.D://room.csv;D://student.csv]");
+        for (String tablename : TableNames) {
+            String hascsv = readFromConsole("INSERT csv DATA for table " + tablename + "?[yes to enter csv]");
+            if (hascsv.equals("yes")) {
+                String csvPath = readFromConsole("Enter csv Path[eg.D://room.csv;D://student.csv]");
 
-                String csvPath = "D://room.csv";
-                String tablename = "room";
+//                String csvPath = "D://room.csv";
+//                String tablename = "room";
+//        String csvPath = "D://student.csv";
+//        String tablename = "student";
+
                 File file = new File(csvPath);
                 if (!file.exists()) {
                     System.out.println("csv not exist.");
-//                    continue;
+                    continue;
                 }
 
                 try {
                     boolean isutf8 = CheckUTF8.isUtf(csvPath);
-                    System.out.println(isutf8);
+//                    System.out.println(isutf8);
                     if (!isutf8) {//这次lab不是utf8就是gbk，所以直接gbk转utf8了
                         String destPath = TimeStampNaming();
                         parseANSItoUTF8(csvPath, destPath);//转码为utf8
                         csvPath = destPath;
                     }
-                    System.out.println("csvPath=" + csvPath);
+//                    System.out.println("csvPath=" + csvPath);
 
                     insertcsv(csvPath, TableMetas.get(tablename), tablename);
 
@@ -55,22 +58,23 @@ public class Main {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-//            }
-//        }
+            }
+        }
 
         //插db
-//        String hasdb = readFromConsole("INSERT db DATA?[yes to enter db]");
-////        if (hasdb.equals("yes")) {
-////            String dbPath = readFromConsole("Enter db Path[eg.D://xxxdatabase.db]");
-////            File file = new File(dbPath);
-////            if (!file.exists()) {
-////                System.out.println("db not exist.");
-////                return;
-////            }
-////
-////            dbPath = "jdbc:sqlite:" + dbPath;
-////            insertDB(dbPath, TableMetas);
-////        }
+        String hasdb = readFromConsole("INSERT db DATA?[yes to enter db]");
+        if (hasdb.equals("yes")) {
+            String dbPath = readFromConsole("Enter db Path[eg.D://xxxdatabase.db]");
+//            String dbPath = "D://xxxdatabase.db";
+            File file = new File(dbPath);
+            if (!file.exists()) {
+                System.out.println("db not exist.");
+                return;
+            }
+
+            dbPath = "jdbc:sqlite:" + dbPath;
+            insertDB(dbPath, TableMetas);
+        }
 
         System.out.println("insert data end.");
         System.out.println("bye~");
@@ -83,7 +87,7 @@ public class Main {
         String result = null;
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println(INFO + " (Only in one line):");
+            System.out.println(INFO + ":");
             result = br.readLine();
 //            System.out.println("Your input is: \n" + content.substring(0, content.lastIndexOf("\n")));
         }
@@ -123,11 +127,14 @@ public class Main {
                         }
                     }
                     if (atr == null) {
-                        System.out.println("插入的数据不合法.");
+                        System.out.println("插入的字段名字无法匹配，请给csv中字段改名.");
                         return;
                     }
                     orderedAttrs.add(atr);
                 }
+
+                List<List<String>> dataToInsert = new ArrayList<List<String>>();
+
                 while ((line = br.readLine()) != null) {
                     int lastEnd = 0;
                     int newStart = 0;
@@ -156,36 +163,36 @@ public class Main {
                         as[inx] = "null";
                     }
 
-                    String[] args = new String[attributes_T.size()];
-                    for (int i = 0; i < orderedAttrs.size(); i++) {
-                        String str = as[attributeIndexs.get(orderedAttrs.get(i))];
-                        while (str.indexOf("\"") == 0){
+                    List<String> args = new ArrayList<String>();
+//                    String[] args = new String[attributes_T.size()];
+                    for (String orderedAttr : orderedAttrs) {
+                        String str = as[attributeIndexs.get(orderedAttr)];
+                        while (str.indexOf("\"") == 0) {
                             if (str.length() > 1) {
                                 str = str.substring(1);   //去掉第一个 "
-                            }
-                            else {
+                            } else {
                                 str = "null";
                             }
                         }
-                        while (str.lastIndexOf("\"") == (str.length() - 1)){
+                        while (str.lastIndexOf("\"") == (str.length() - 1)) {
                             if (str.length() > 1) {
                                 str = str.substring(0, str.length() - 1);  //去掉最后一个 "
-                            }
-                            else {
+                            } else {
                                 str = "null";
                             }
                         }
-                        args[i] = str;
+//                        args[i] = str;
+                        args.add(str);
                     }
-
-                    DB_Tools_Mysql.insertValue(tablename, tf, args);
+                    dataToInsert.add(args);
 //                        System.out.println("args=" + Arrays.toString(args));
                 }
-
                 br.close();
+
+                DB_Tools_Mysql.insertValue(tablename, tf, dataToInsert);
             }
             else {
-                System.out.println("表不对.");
+                System.out.println("csv中的字段没有名字,或者是csv的格式有问题，请重新选择数据来导入.");
             }
         }
         catch (IOException e) {

@@ -15,9 +15,6 @@ public class CheckUTF8 {
         }
     }
 
-    /**
-     * 用有限状态机写的
-     */
     public static boolean isUtf(String filePath) throws IOException{
         FileInputStream fis=new FileInputStream(filePath);
         byte[] bbuf=new byte[1024];
