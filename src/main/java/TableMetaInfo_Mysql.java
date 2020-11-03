@@ -38,7 +38,15 @@ public class TableMetaInfo_Mysql {
         return Types.get(AttributeIndexs.get(attribute));
     }
 
+    public String getType(int attribute_index) {
+        return Types.get(attribute_index);
+    }
+
     public boolean getIsNullable(String attribute) {
         return IsNullables.get(AttributeIndexs.get(attribute));
+    }
+
+    public boolean getIsNullable(int attribute_index) {
+        return IsNullables.get(attribute_index);
     }
 }

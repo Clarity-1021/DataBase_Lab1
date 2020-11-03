@@ -4,11 +4,11 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        String isCreate = readFromConsole("Delate database name dblab and Create database dblab?[yes to create]");
-        if (!isCreate.equals("yes")) {
-            System.out.println("bye~");
-            return;
-        }
+//        String isCreate = readFromConsole("Delate database name dblab and Create database dblab?[yes to create]");
+//        if (!isCreate.equals("yes")) {
+//            System.out.println("bye~");
+//            return;
+//        }
 
         //建表
         DB_Tools_Mysql.createTables();
@@ -21,15 +21,17 @@ public class Main {
         }
 
         //插csv
-        for (String tablename : TableNames) {
-            String hascsv = readFromConsole("INSERT csv DATA for table " + tablename + "?[yes to enter csv]");
-            if (hascsv.equals("yes")) {
-                String csvPath = readFromConsole("Enter csv Path[eg.D://room.csv;D://student.csv]");
+//        for (String tablename : TableNames) {
+//            String hascsv = readFromConsole("INSERT csv DATA for table " + tablename + "?[yes to enter csv]");
+//            if (hascsv.equals("yes")) {
+//                String csvPath = readFromConsole("Enter csv Path[eg.D://room.csv;D://student.csv]");
 
+                String csvPath = "D://room.csv";
+                String tablename = "room";
                 File file = new File(csvPath);
                 if (!file.exists()) {
                     System.out.println("csv not exist.");
-                    continue;
+//                    continue;
                 }
 
                 try {
@@ -53,22 +55,22 @@ public class Main {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
-        }
+//            }
+//        }
 
         //插db
-        String hasdb = readFromConsole("INSERT db DATA?[yes to enter db]");
-        if (hasdb.equals("yes")) {
-            String dbPath = readFromConsole("Enter db Path[eg.D://xxxdatabase.db]");
-            File file = new File(dbPath);
-            if (!file.exists()) {
-                System.out.println("db not exist.");
-                return;
-            }
-
-            dbPath = "jdbc:sqlite:" + dbPath;
-            insertDB(dbPath, TableMetas);
-        }
+//        String hasdb = readFromConsole("INSERT db DATA?[yes to enter db]");
+////        if (hasdb.equals("yes")) {
+////            String dbPath = readFromConsole("Enter db Path[eg.D://xxxdatabase.db]");
+////            File file = new File(dbPath);
+////            if (!file.exists()) {
+////                System.out.println("db not exist.");
+////                return;
+////            }
+////
+////            dbPath = "jdbc:sqlite:" + dbPath;
+////            insertDB(dbPath, TableMetas);
+////        }
 
         System.out.println("insert data end.");
         System.out.println("bye~");
@@ -96,24 +98,6 @@ public class Main {
      */
     public static void insertcsv(String csvPath, TableMetaInfo_Mysql tf, String tablename) {
         List<String> attributes_T = tf.getAttributes();//拿到被插的有序的属性名
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert ignore into ").append(tablename).append("(");
-        for (int i = 0; i < attributes_T.size(); i++) {
-            sb.append(attributes_T.get(i));
-            if (i != attributes_T.size() - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append(") values(");
-        for (int i = 0; i < attributes_T.size(); i++) {
-            sb.append("?");
-            if (i != attributes_T.size() - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append(")");
-        String ssql = sb.toString();
-
         try {
             BufferedReader br = new BufferedReader(new FileReader(csvPath));
             String[] attribute_csv = null;
@@ -193,7 +177,8 @@ public class Main {
                         }
                         args[i] = str;
                     }
-                    DB_Tools_Mysql.insertValue(ssql, args);
+
+                    DB_Tools_Mysql.insertValue(tablename, tf, args);
 //                        System.out.println("args=" + Arrays.toString(args));
                 }
 
@@ -236,7 +221,7 @@ public class Main {
                     }
                     orderedAttrs.add(atr);
                 }
-                DB_Tools_SQLite.insertValues(dbPath, tname, orderedAttrs, attributes_T);
+                DB_Tools_SQLite.insertValues(dbPath, tname, orderedAttrs, tf);
 //                    File txt=new File(txtPath);
 //                    if (!txt.delete()) {
 //                        System.out.println("txt数据删除失败.");

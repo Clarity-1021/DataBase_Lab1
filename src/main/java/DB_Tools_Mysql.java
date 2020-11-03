@@ -1,7 +1,13 @@
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 
@@ -55,50 +61,30 @@ public class DB_Tools_Mysql {
         }
     }
 
-    public static void insertValues(String txtPath) {
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(txtPath));
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] args = line.split("\t");
-                System.out.println("args=" + Arrays.toString(args));
+    //args是排过序的，和表中属性的顺序一致
+    public static void insertValue(String tablename, TableMetaInfo_Mysql tf, String[] args) {
+        List<String> attribute_T = tf.getAttributes();//获得表中顺序排列的属性名
+        StringBuilder sb = new StringBuilder();
+        sb.append("insert ignore into ").append(tablename).append("(");
+        for (int i = 0; i < attribute_T.size(); i++) {
+            sb.append(attribute_T.get(i));
+            if (i != attribute_T.size() - 1) {
+                sb.append(",");
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-    }
+        sb.append(") values(");
+        for (int i = 0; i < attribute_T.size(); i++) {
+            sb.append("?");
+            if (i != attribute_T.size() - 1) {
+                sb.append(",");
+            }
+        }
+        sb.append(")");
+        String sql = sb.toString();
 
-    /**
-     * 执行sql
-     */
-    public static void exesql(String sql){
         Connection dbConnection = getConnection();
         PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = dbConnection.prepareStatement(sql);
 
-            if (DB_Tools.isLog) {
-                System.out.println("正要执行:");
-                System.out.println(sql);
-            }
-
-            preparedStatement.execute();
-
-            if (DB_Tools.isLog) {
-                System.out.println("执行成功.");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closePreparedStatement(preparedStatement);
-            closeConnection(dbConnection);
-        }
-    }
-
-    public static void insertValue(String sql, String[] args) {
-        Connection dbConnection = getConnection();
-        PreparedStatement preparedStatement = null;
         try {
             preparedStatement = dbConnection.prepareStatement(sql);
 
@@ -108,7 +94,214 @@ public class DB_Tools_Mysql {
             }
 
             for (int i = 0; i < args.length; i++) {
-                preparedStatement.setString(i + 1, args[i]);
+                String type = tf.getType(i);
+                if ("TINYINT".equals(type) || "SMALLINT".equals(type) || "MEDIUMINT".equals(type) || "BOOLEAN".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+                        }
+                        else {
+                            if ("TINYINT".equals(type) || "BOOLEAN".equals(type)) {
+                                preparedStatement.setNull(i + 1, Types.TINYINT);
+                            }
+                            else if ("SMALLINT".equals(type)) {
+                                preparedStatement.setNull(i + 1, Types.SMALLINT);
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.INTEGER);
+                            }
+                        }
+                    }
+                    else {
+                        preparedStatement.setInt(i + 1, Integer.parseInt(args[i]));
+                    }
+                } else if ("VARCHAR".equals(type) || "CHAR".equals(type) || "TEXT".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+//                            preparedStatement.setString(i + 1, args[i]);
+                        }
+                        else {
+                            if ("VARCHAR".equals(type) || "TEXT".equals(type)) {
+                                preparedStatement.setNull(i + 1, Types.VARCHAR);
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.CHAR);
+                            }
+                        }
+                    }
+                    else {
+                        preparedStatement.setString(i + 1, args[i]);
+                    }
+                } else if ("DATETIME".equals(type) || "TIMESTAMP".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+//                            System.out.println("数据完整性约束为非空不能插入.");
+                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                            java.util.Date date = sdf.parse("0000-00-00 00:00");
+                            long lg = date.getTime(); //日期转时间戳
+//                            java.sql.Date t = new java.sql.Date(lg);
+                            preparedStatement.setDate(i + 1, new java.sql.Date(lg));
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.DATE);
+                        }
+                    }
+                    else {
+//                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");//注意月份是MM
+//                        Date date = (Date) simpleDateFormat.parse(args[i]);
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        java.util.Date date = sdf.parse(args[i]);
+                        long lg = date.getTime(); //日期转时间戳
+                        preparedStatement.setTimestamp(i + 1, new java.sql.Timestamp(lg));
+                    }
+                } else if ("BLOB".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.BLOB);
+                        }
+                    }
+                    else {
+                        preparedStatement.setBytes(i + 1, args[i].getBytes());
+                    }
+                } else if ("INTEGER".equals(type) || "ID".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.INTEGER);
+                        }
+                    }
+                    else {
+                        preparedStatement.setLong(i + 1, Long.parseLong(args[i]));
+                    }
+                } else if ("BIT".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.BIT);
+                        }
+                    }
+                    else {
+                        if (!args[i].equals("0")) {
+                            preparedStatement.setBoolean(i + 1, true);
+                        } else {
+                            preparedStatement.setBoolean(i + 1, false);
+                        }
+                    }
+                } else if ("BIGINT".equals(type) || "DECIMAL".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+//                            preparedStatement.setBigDecimal(i + 1, BigDecimal.valueOf(0));
+                        }
+                        else {
+                            if ("BIGINT".equals(type)) {
+                                preparedStatement.setNull(i + 1, Types.BIGINT);
+                            }
+                            else {
+                                preparedStatement.setNull(i + 1, Types.DECIMAL);
+                            }
+                        }
+                    }
+                    else {
+                        preparedStatement.setBigDecimal(i + 1, new BigDecimal(args[i]));
+                    }
+                } else if ("FLOAT".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+//                            preparedStatement.setFloat(i + 1, 0);
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.FLOAT);
+                        }
+                    }
+                    else {
+                        preparedStatement.setFloat(i + 1, Float.parseFloat(args[i]));
+                    }
+                } else if ("DOUBLE".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+                            System.out.println("数据完整性约束为非空不能插入.");
+//                            preparedStatement.setDouble(i + 1, 0);
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.DOUBLE);
+                        }
+                    }
+                    else {
+                        preparedStatement.setDouble(i + 1, Double.parseDouble(args[i]));
+                    }
+                } else if ("DATE".equals(type) || "YEAR".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+//                            System.out.println("数据完整性约束为非空不能插入.");
+                            java.util.Date date;
+                            if ("DATE".equals(type)) {
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
+                                date = simpleDateFormat.parse("0000-00-00");
+                            }
+                            else {
+                                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy");
+                                date = simpleDateFormat.parse("0000");
+                            }
+                            long lg = date.getTime(); //日期转时间戳
+                            preparedStatement.setDate(i + 1, new java.sql.Date(lg));
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.DATE);
+                        }
+                    }
+                    else {
+                        SimpleDateFormat simpleDateFormat;
+                        if ("DATE".equals(type)) {
+                            simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
+                        }
+                        else {
+                            simpleDateFormat = new SimpleDateFormat("yyyy");
+                        }
+                        java.util.Date date = simpleDateFormat.parse(args[i]);
+                        long lg = date.getTime(); //日期转时间戳
+                        preparedStatement.setDate(i + 1, new java.sql.Date(lg));
+
+//                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//                        java.util.Date date = sdf.parse("00:00:00");
+//                        long lg = date.getTime(); //日期转时间戳
+//                        preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+                    }
+                } else if ("TIME".equals(type)) {
+                    if (args[i].equals("null")) {
+                        if (!tf.getIsNullable(i)) {
+//                            System.out.println("数据完整性约束为非空不能插入.");
+                            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                            java.util.Date date = sdf.parse("00:00:00");
+                            long lg = date.getTime(); //日期转时间戳
+                            preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+                        }
+                        else {
+                            preparedStatement.setNull(i + 1, Types.TIME);
+                        }
+                    }
+                    else {
+                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                        java.util.Date date = sdf.parse(args[i]);
+                        long lg = date.getTime(); //日期转时间戳
+                        preparedStatement.setTime(i + 1, new java.sql.Time(lg));
+//                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");//注意月份是MM
+//                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");//注意月份是MM
+//                        java.util.Date d = sdf.parse(args[i]);
+//                        preparedStatement.setTime(i + 1, new Time(d.getTime()));
+                    }
+                } else {
+                    System.out.println("no such data type, this record not insert.");
+                }
             }
 
             preparedStatement.executeUpdate();
@@ -117,6 +310,8 @@ public class DB_Tools_Mysql {
                 System.out.println("执行成功.");
             }
         } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
             e.printStackTrace();
         } finally {
             closePreparedStatement(preparedStatement);
@@ -187,8 +382,8 @@ public class DB_Tools_Mysql {
             TableMetaInfo_Mysql tf = new TableMetaInfo_Mysql(tableName);
             List<String> attributes =  tf.getAttributes();
             System.out.println("attributes=" + attributes);
-            for (String attribute : attributes) {
-                System.out.println(attribute + "->" + tf.getType(attribute) + ", " + tf.getIsNullable(attribute));
+            for (int i = 0; i < attributes.size(); i++) {
+                System.out.println(attributes.get(i) + "->" + tf.getType(i) + ", " + tf.getIsNullable(i));
             }
 //            System.out.println("ColumnNames:" + getColumnNames(DB_URL, tableName));
 //            System.out.println("ColumnTypes:" + getColumnTypes(DB_URL, tableName));

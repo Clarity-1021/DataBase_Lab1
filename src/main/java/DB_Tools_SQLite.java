@@ -63,26 +63,7 @@ public class DB_Tools_SQLite {
         return DB_Tools.getColumnNames(DB_URL, tableName);
     }
 
-    public static void insertValues(String dbPath, String tablename, List<String> orderedAttrs, List<String> Attributes) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("insert ignore into ").append(tablename).append("(");
-        for (int i = 0; i < Attributes.size(); i++) {
-            sb.append(Attributes.get(i));
-            if (i != Attributes.size() - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append(") values(");
-        for (int i = 0; i < Attributes.size(); i++) {
-            sb.append("?");
-            if (i != Attributes.size() - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append(")");
-        String ssql = sb.toString();
-
-
+    public static void insertValues(String dbPath, String tablename, List<String> orderedAttrs, TableMetaInfo_Mysql tf) {
         Connection dbConnection = getConnection(dbPath);
         PreparedStatement preparedStatement = null;
         String sql = "select * from " + tablename;
@@ -96,7 +77,7 @@ public class DB_Tools_SQLite {
             ResultSet rs = preparedStatement.executeQuery();
 
             while(rs.next()){
-                sb = new StringBuilder();
+                StringBuilder sb = new StringBuilder();
 
                 for (String attr : orderedAttrs) {
 //                    System.out.println(attr + "=" + rs.getString(attr));
@@ -116,7 +97,7 @@ public class DB_Tools_SQLite {
 //                appendintxt(txtPath, line);
                 String[] args = line.split(",");
 
-                DB_Tools_Mysql.insertValue(ssql, args);
+                DB_Tools_Mysql.insertValue(tablename, tf, args);
             }
 
             if (DB_Tools.isLog) {
